@@ -3,12 +3,12 @@ let pointsPerClick = 1;
 let autoPointsPerSecond = 0;
 
 const upgrades = [
-    { cost: 10, multiplier: 1.2, autoMultiplier: 1.2 },   // Amélioration 1
-    { cost: 50, multiplier: 2, autoMultiplier: 2 },      // Amélioration 2
-    { cost: 200, multiplier: 5, autoMultiplier: 5 },     // Amélioration 3
-    { cost: 1000, multiplier: 10, autoMultiplier: 10 },  // Amélioration 4
-    { cost: 5000, multiplier: 20, autoMultiplier: 20 },
-    { cost: 10000, multiplier: 50, autoMultiplier: 50 },
+    { cost: 10, multiplier: 1.2, autoMultiplier: 1.2, name: ' Upgrade 1' },
+    { cost: 50, multiplier: 2, autoMultiplier: 2, name: ' Upgrade 2' },
+    { cost: 200, multiplier: 5, autoMultiplier: 5, name: ' Upgrade 3 ' },
+    { cost: 1000, multiplier: 10, autoMultiplier: 10, name: ' Upgrade 4' },
+    { cost: 5000, multiplier: 20, autoMultiplier: 20, name: ' Upgrade 5' },
+    { cost: 10000, multiplier: 50, autoMultiplier: 50, name: ' Upgrade 6' }
 ];
 
 const pointsDisplay = document.getElementById('points');
@@ -17,19 +17,63 @@ const autoPointsPerSecondDisplay = document.getElementById('auto-points-per-seco
 const clickButton = document.getElementById('click-button');
 const upgradeButtons = document.getElementById('upgrade-buttons');
 
-clickButton.addEventListener('click', () => {
-    points += pointsPerClick;
-    points = Math.floor(points);
-    pointsDisplay.textContent = points;
-    checkUpgradeAvailability();
-});
+function saveGame() {
+    localStorage.setItem('clickerGameSave', JSON.stringify({
+        points, pointsPerClick, autoPointsPerSecond, upgrades
+    }));
+}
 
-upgrades.forEach((upgrade, index) => {
-    const button = document.createElement('button');
-    button.textContent = `Amélioration ${index + 1} (${upgrade.cost} points)`;
-    button.addEventListener('click', () => purchaseUpgrade(index, button));
-    upgradeButtons.appendChild(button);
-});
+function loadGame() {
+    const savedData = localStorage.getItem('clickerGameSave');
+    if (savedData) {
+        const gameData = JSON.parse(savedData);
+        points = gameData.points;
+        pointsPerClick = gameData.pointsPerClick;
+        autoPointsPerSecond = gameData.autoPointsPerSecond;
+        gameData.upgrades.forEach((upgrade, index) => {
+            upgrades[index].cost = upgrade.cost;
+        });
+        updateDisplay();
+    }
+}
+
+function formatNumber(num) {
+    if (num >= 1000000) return (num/1000000).toFixed(2) + 'M';
+    if (num >= 1000) return (num/1000).toFixed(2) + 'K';
+    return Math.floor(num);
+}
+
+function updateDisplay() {
+    pointsDisplay.textContent = formatNumber(points);
+    pointsPerClickDisplay.textContent = formatNumber(pointsPerClick);
+    autoPointsPerSecondDisplay.textContent = formatNumber(autoPointsPerSecond);
+    
+    upgrades.forEach((upgrade, index) => {
+        if (upgradeButtons.children[index]) {
+            const button = upgradeButtons.children[index];
+            button.textContent = `${upgrade.name} (${formatNumber(upgrade.cost)} )`;
+            button.disabled = points < upgrade.cost;
+            button.className = points >= upgrade.cost ? 'upgrade-button available' : 'upgrade-button';
+        }
+    });
+}
+
+function generateAutoPoints() {
+    if (autoPointsPerSecond > 0) {
+        points += autoPointsPerSecond;
+        updateDisplay();
+        saveGame();
+    }
+}
+
+function createFloatingText(value) {
+    const floatingText = document.createElement('div');
+    floatingText.className = 'floating-text';
+    floatingText.textContent = `+${formatNumber(value)}`;
+    clickButton.parentElement.appendChild(floatingText);
+    
+    setTimeout(() => floatingText.remove(), 1000);
+}
 
 function purchaseUpgrade(index, button) {
     const upgrade = upgrades[index];
@@ -37,33 +81,34 @@ function purchaseUpgrade(index, button) {
         points -= upgrade.cost;
         pointsPerClick += upgrade.multiplier;
         autoPointsPerSecond += upgrade.autoMultiplier;
-        points = Math.floor(points);
-
         upgrade.cost = Math.floor(upgrade.cost * 1.5);
-        button.textContent = `Amélioration ${index + 1} (${upgrade.cost} points)`;
-
-        // Arrondir les valeurs pour l'affichage
-        pointsPerClickDisplay.textContent = Math.floor(pointsPerClick);
-        autoPointsPerSecondDisplay.textContent = Math.floor(autoPointsPerSecond);
         
-        checkUpgradeAvailability();
+        button.classList.add('upgrade-animation');
+        setTimeout(() => button.classList.remove('upgrade-animation'), 300);
+        
+        updateDisplay();
+        saveGame();
     }
 }
 
-function checkUpgradeAvailability() {
-    upgrades.forEach((upgrade, index) => {
-        const button = upgradeButtons.children[index];
-        button.disabled = points < upgrade.cost;
-    });
-}
+upgrades.forEach((upgrade, index) => {
+    const button = document.createElement('button');
+    button.className = 'upgrade-button';
+    button.textContent = `${upgrade.name} (${formatNumber(upgrade.cost)} )`;
+    button.addEventListener('click', () => purchaseUpgrade(index, button));
+    upgradeButtons.appendChild(button);
+});
 
-function generateAutoPoints() {
-    points += autoPointsPerSecond;
-    points = Math.floor(points);
-    pointsDisplay.textContent = points;
-    checkUpgradeAvailability();
-}
+clickButton.addEventListener('click', () => {
+    points += pointsPerClick;
+    createFloatingText(pointsPerClick);
+    clickButton.classList.add('click-animation');
+    setTimeout(() => clickButton.classList.remove('click-animation'), 100);
+    updateDisplay();
+    saveGame();
+});
 
+loadGame();
 setInterval(generateAutoPoints, 1000);
-
-checkUpgradeAvailability();
+setInterval(saveGame, 30000);
+updateDisplay();
