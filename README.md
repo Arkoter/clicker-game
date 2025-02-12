@@ -2,7 +2,7 @@
 
 A modern and addictive clicker game with an elegant interface and smooth animations. Click, upgrade, and become the clicking master!
 
-![Version](https://img.shields.io/badge/version-1.0.0-blue.svg)
+![Version](https://img.shields.io/badge/version-0.1.5-blue.svg)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
 
 ## ✨ Features
